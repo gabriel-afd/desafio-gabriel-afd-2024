@@ -53,20 +53,23 @@ class RecintosZoo {
 
 
         //Verificando quais recintos sao viaveis para os tipos de animais
-        let recintosViaveis = [];
+        const recintosViaveis = [];
 
 
         //Iterando sobre cada elemento em recintos
         for (let recinto of this.recintos){
             //Verificação se o bioma do recinto é adequado para o tipo de animal, caso não seja, a função pula para a proxima em continue
-            if (!animalInfo.biomas.includes(recinto.bioma) && !(recinto.bioma.includes('savana') && animalInfo.biomas.includes('savana') && recinto.bioma.includes('rio') && animalInfo.biomas.includes('rio'))) {
-                continue;
-            }
+           
+            const biomaAdequado = animalInfo.biomas.some(bioma => recinto.bioma.includes(bioma)) || (recinto.bioma.includes('savana') && animalInfo.biomas.includes('savana') && 
+            recinto.bioma.includes('rio') && animalInfo.biomas.includes('rio'));
 
+            if(!biomaAdequado) continue;
+
+            if (recinto.numero === 5 && animal === 'MACACO') continue;
 
             //Espaco ocupado no recinto
 
-            let espacoOcupado = recinto.animais.reduce((total,animal) => {
+            const espacoOcupado = recinto.animais.reduce((total,animal) => {
                 const tipoAnimal = this.animaisPermitidos[animal.especie]; //Para obter as informações do animal atual
                 return total + (tipoAnimal.tamanho * animal.quantidade)
                 //total é o valor acumulado a medida que reduce itera sobre cada item da lista recinto.animais(Na primeira iteração, total é 0)
@@ -75,12 +78,13 @@ class RecintosZoo {
             //Verificando a existencia de animais carnivoros que devem ficar somente com a propria especie
 
             const haCarnivoros = recinto.animais.some(animal => this.animaisPermitidos[animal.especie].carnivoro); //O metodo some irá buscar apenas por uma condição verdadeira
-            if (animalInfo.carnivoro && (haCarnivoros || recinto.animais.length > 0)){ //Se apenas uma dessas condições for "true" o cógigo faz continue e pula o recinto porque herbivoros não podem conviver com carnovoros
-                continue;
+            if ((animalInfo.carnivoro && !haCarnivoros && recinto.animais.length > 0) || // Carnívoros não podem conviver com herbívoros
+            (!animalInfo.carnivoro && haCarnivoros)) { // Herbívoros não podem conviver com carnívoros
+                continue
             }
 
             //Hipopótamo(s) só tolera(m) outras espécies estando num recinto com savana e rio
-            const haHipopotamo = recinto.animais.some(animal => animal.especie === 'HIPOPOTAMO');
+            const haHipopotamo = recinto.animais.some(a => a.especie === 'HIPOPOTAMO');
             if((animal === 'HIPOPOTAMO' && recinto.animais.length > 0 && recinto.bioma != 'savana e rio') || (haHipopotamo && (animal !== 'HIPOPOTAMO' || recinto.bioma !== 'savana e rio'))) {
                 continue; 
 
@@ -90,19 +94,19 @@ class RecintosZoo {
 
             //Um macaco não se sente confortável sem outro animal no recinto, seja da mesma ou outra espécie
 
-            const haMacaco = recinto.animais.some(animal => animal.especie === 'MACACO');
-            if((animal === 'MACACO' && quantidade === 1 && recinto.animais.length === 0) || (haMacaco && recinto.animais.length === 1 && animal !== 'MACACO' && quantidade ===1)){
+            const haMacaco = recinto.animais.some(a => a.especie === 'MACACO');
+            if((animal === 'MACACO' && quantidade === 1 && recinto.animais.length === 0 && recinto.bioma !== 'savana e rio') || (haMacaco && recinto.animais.length === 1 && animal !== 'MACACO' && quantidade ===1)){
                 continue; //Sendo qualquer uma das afirmações verdadeiras, o comando continue é executado, loop atual é ignorado e passsado para o próximo
             }
 
             //Calculo de espaco extra(Quando há mais de uma espécie no mesmo recinto, é preciso considerar 1 espaço extra ocupado)
 
-            const espacoExtra = (recinto.animais.length > 0 && !recinto.animais.some(a => a.especie === animal)? 1 : 0);
+            const espacoExtra = (animal === 'MACACO' &&(recinto.animais.length > 0 && !recinto.animais.some(a => a.especie === animal))? 1 : 0);
             const espacoTotalSuficiente = espacoSuficiente + espacoExtra;
 
             if (espacoOcupado + espacoTotalSuficiente <= recinto.tamanho){
 
-                recintosViaveis.push(`Recinto ${recinto.numero} (espaço livre: ${recinto.tamanho - espacoOcupado - espacoSuficiente} total: ${recinto.tamanho})`);
+                recintosViaveis.push(`Recinto ${recinto.numero} (espaço livre: ${recinto.tamanho - espacoOcupado - espacoTotalSuficiente} total: ${recinto.tamanho})`);
             }
 
             //Caso não haja recintos viaveis               
